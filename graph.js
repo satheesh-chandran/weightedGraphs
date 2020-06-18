@@ -57,7 +57,7 @@ const findPath = function (adjTable, from, to) {
     const children = adjTable[current.value];
     children.forEach(adj => {
       adj.parent = current.value;
-      updateCostTable(costTable, child);
+      updateCostTable(costTable, adj);
     });
     updateQueue(adjTable, current, queue, processed);
   }
@@ -83,14 +83,64 @@ const createCostTable = function (adjTable, from) {
   return costTable;
 };
 
-const kruskalMst = function (table) {};
+const createEdgeQueue = function (table) {
+  const edgeQueue = [];
+  Object.entries(table).forEach(([parent, children]) => {
+    children.forEach(({ value, weight }) => {
+      edgeQueue.push({ value, weight, parent });
+    });
+  });
+  edgeQueue.sort(sorter);
+  return edgeQueue;
+};
+
+const createLookUp = function (keys) {
+  const lookUp = {};
+  keys.forEach(key => {
+    const row = { parent: key, depth: 0 };
+    lookUp[key] = row;
+  });
+  return lookUp;
+};
+
+const findParent = function (lookUp, root) {
+  if (lookUp[root].parent == root) return root;
+  return findParent(lookUp, lookUp[root].parent);
+};
+
+const connect = function (lookUp, grandRoot, valueRoot) {
+  const grandGrandRoot = findParent(lookUp, grandRoot);
+  const valueGrandRoot = findParent(lookUp, valueRoot);
+  if (lookUp[grandGrandRoot].depth < lookUp[valueGrandRoot].depth)
+    lookUp[grandGrandRoot].parent = valueGrandRoot;
+  else lookUp[valueGrandRoot].parent = grandGrandRoot;
+  lookUp[grandGrandRoot].depth++;
+};
+
+const kruskalMst = function (table) {
+  const edgeQueue = createEdgeQueue(table);
+  const lookUp = createLookUp(Object.keys(table));
+  const spanningTree = [];
+  for (let index = 0; index < edgeQueue.length; index++) {
+    const { parent, value } = edgeQueue[index];
+    const grandRoot = findParent(lookUp, parent);
+    const valueRoot = findParent(lookUp, value);
+    if (grandRoot != valueRoot) {
+      spanningTree.push(edgeQueue[index]);
+      connect(lookUp, grandRoot, valueRoot);
+    }
+    if (spanningTree.length == Object.keys(table).length) return spanningTree;
+  }
+  return spanningTree;
+};
 
 const main = function () {
   const pairs = require('./graph.json');
   const table = createAdjacencyTable(pairs);
   const mst = primsMst(table, 'B');
-  console.log(mst);
-  console.log(findPath(table, 'B', 'D'));
+  // console.log(mst);
+  // console.log(findPath(table, 'B', 'D'));
+  console.log(kruskalMst(table));
 };
 
 main();
