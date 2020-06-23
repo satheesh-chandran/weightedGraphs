@@ -1,5 +1,3 @@
-const { writeFileSync } = require('fs');
-
 const sorter = (a, b) => a.weight - b.weight;
 
 const updateQueue = function (table, current, queue, processed) {
@@ -111,9 +109,12 @@ const findParent = function (lookUp, root) {
 const connect = function (lookUp, grandRoot, valueRoot) {
   const grandGrandRoot = findParent(lookUp, grandRoot);
   const valueGrandRoot = findParent(lookUp, valueRoot);
-  if (lookUp[grandGrandRoot].depth < lookUp[valueGrandRoot].depth)
+  if (lookUp[grandGrandRoot].depth > lookUp[valueGrandRoot].depth) {
     lookUp[grandGrandRoot].parent = valueGrandRoot;
-  else lookUp[valueGrandRoot].parent = grandGrandRoot;
+    lookUp[valueGrandRoot].depth++;
+    return;
+  }
+  lookUp[valueGrandRoot].parent = grandGrandRoot;
   lookUp[grandGrandRoot].depth++;
 };
 
@@ -122,11 +123,11 @@ const kruskalMst = function (table) {
   const lookUp = createLookUp(Object.keys(table));
   const spanningTree = [];
   for (let index = 0; index < edgeQueue.length; index++) {
-    const { parent, value } = edgeQueue[index];
+    const { parent, value, weight } = edgeQueue[index];
     const grandRoot = findParent(lookUp, parent);
     const valueRoot = findParent(lookUp, value);
     if (grandRoot != valueRoot) {
-      spanningTree.push(edgeQueue[index]);
+      spanningTree.push({ from: parent, to: value, weight });
       connect(lookUp, grandRoot, valueRoot);
     }
     if (spanningTree.length == Object.keys(table).length) return spanningTree;
@@ -137,7 +138,7 @@ const kruskalMst = function (table) {
 const main = function () {
   const pairs = require('./graph.json');
   const table = createAdjacencyTable(pairs);
-  const mst = primsMst(table, 'B');
+  // const mst = primsMst(table, 'B');
   // console.log(mst);
   // console.log(findPath(table, 'B', 'D'));
   console.log(kruskalMst(table));
